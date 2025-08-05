@@ -1,19 +1,24 @@
 import React, { useRef, useState, useEffect } from "react";
 import { View, Modal, Dimensions, StyleSheet, TouchableOpacity, Text } from "react-native";
 import { FlashList } from "@shopify/flash-list";
+import throttle from "lodash.throttle";
 import FullScreenItem from "./FullScreenItem";
 
-const { height, width } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
 
 const FullScreenViewer = ({ data, initialIndex, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const flashListRef = useRef(null);
 
-  const onViewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems.length > 0) setCurrentIndex(viewableItems[0].index);
-  }).current;
+  const onViewableItemsChanged = useRef(
+    throttle(({ viewableItems }) => {
+      if (viewableItems?.length > 0) {
+        setCurrentIndex(viewableItems[0].index);
+      }
+    }, 300)
+  ).current;
 
-  const viewabilityConfig = { itemVisiblePercentThreshold: 60 };
+  const viewabilityConfig = { itemVisiblePercentThreshold: 80 };
 
   useEffect(() => {
     setTimeout(() => {
@@ -24,12 +29,12 @@ const FullScreenViewer = ({ data, initialIndex, onClose }) => {
   }, [initialIndex, data.length]);
 
   return (
-    <Modal visible={true} transparent={false} animationType="slide" onRequestClose={onClose}>
+    <Modal visible transparent={false} animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        {/* Back button */}
         <TouchableOpacity style={styles.backButton} onPress={onClose}>
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
+
         <FlashList
           ref={flashListRef}
           data={data}
@@ -48,6 +53,9 @@ const FullScreenViewer = ({ data, initialIndex, onClose }) => {
           snapToAlignment="start"
           decelerationRate="fast"
           bounces={false}
+          initialNumToRender={3}
+          maxToRenderPerBatch={3}
+          windowSize={5}
         />
       </View>
     </Modal>
@@ -57,8 +65,13 @@ const FullScreenViewer = ({ data, initialIndex, onClose }) => {
 const styles = StyleSheet.create({
   modalContainer: { flex: 1, backgroundColor: "#000" },
   backButton: {
-    position: "absolute", top: 40, left: 16, zIndex: 100,
-    backgroundColor: "rgba(0,0,0,0.5)", padding: 10, borderRadius: 20
+    position: "absolute",
+    top: 40,
+    left: 16,
+    zIndex: 100,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    padding: 10,
+    borderRadius: 20,
   },
   backText: { color: "#fff", fontSize: 20 },
 });
