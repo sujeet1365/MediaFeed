@@ -1,53 +1,37 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useMemo } from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
 import Video from "react-native-video";
 import FastImage from "react-native-fast-image";
-import Loader from "../common/Loader";
 import { getVideoLink, getThumbnailLink } from "../../utils/mediaUtils";
 
 const { height, width } = Dimensions.get("window");
 
 const FullScreenItem = ({ item, isVisible }) => {
-  const [loading, setLoading] = useState(true);
   const videoRef = useRef(null);
 
   const isVideo = item.type === "Video";
-  const videoLink = getVideoLink(item.video_files);
-  const thumbnailLink = getThumbnailLink(item);
-
-  const onLoadStart = useCallback(() => setLoading(true), []);
-  const onLoad = useCallback(() => setLoading(false), []);
-  const onError = useCallback(() => setLoading(false), []);
+  const videoLink = useMemo(() => getVideoLink(item.video_files), [item]);
+  const thumbnailLink = useMemo(() => getThumbnailLink(item), [item]);
 
   return (
     <View style={styles.fullScreenContainer}>
-      {isVideo && videoLink ? (
-        <>
-          <Video
-            ref={videoRef}
-            source={{ uri: videoLink }}
-            style={styles.video}
-            resizeMode="contain"
-            paused={!isVisible}
-            onLoadStart={onLoadStart}
-            onLoad={onLoad}
-            onError={onError}
-            repeat
-            controls={false}
-            poster={thumbnailLink}
-            posterResizeMode="contain"
-          />
-          {loading && (
-            <View style={styles.loader}>
-              <Loader />
-            </View>
-          )}
-        </>
+      {isVideo && videoLink && isVisible ? (
+        <Video
+          ref={videoRef}
+          source={{ uri: videoLink }}
+          style={styles.video}
+          resizeMode="contain"
+          paused={!isVisible}
+          repeat
+          controls={false}
+          poster={thumbnailLink}
+          posterResizeMode="contain"
+        />
       ) : (
         <FastImage
           style={styles.image}
           source={{ uri: thumbnailLink }}
-          resizeMode={FastImage.resizeMode.contain}
+          resizeMode={FastImage.resizeMode.cover}
         />
       )}
     </View>
@@ -60,14 +44,18 @@ const areEqual = (prev, next) =>
 export default React.memo(FullScreenItem, areEqual);
 
 const styles = StyleSheet.create({
-  fullScreenContainer: { height, width, backgroundColor: "#000" },
-  video: { ...StyleSheet.absoluteFillObject },
-  loader: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: [{ translateX: -12 }, { translateY: -12 }],
-    zIndex: 10,
+  fullScreenContainer: {
+    height,
+    width,
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  image: { height: "100%", width: "100%" },
+  video: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  image: {
+    height: "100%",
+    width: "100%",
+  },
 });

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import { FlashList } from "@shopify/flash-list";
+import throttle from "lodash.throttle";
 import Item from "./Item";
 import Loader from "../common/Loader";
 import FullScreenViewer from "./FullScreenViewer";
@@ -11,12 +12,14 @@ const MediaList = () => {
   const [visibleItems, setVisibleItems] = useState(new Set());
   const [selectedIndex, setSelectedIndex] = useState(null);
 
-  // Callback to track visible items for video pause/resume
-  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
-    setVisibleItems(new Set(viewableItems.map(vi => vi.item.id)));
-  }, []);
+  const throttledViewableChanged = useCallback(
+    throttle(({ viewableItems }) => {
+      setVisibleItems(new Set(viewableItems.map(vi => vi.item.id)));
+    }, 500),
+    []
+  );
 
-  const viewabilityConfig = { itemVisiblePercentThreshold: 60 };
+  const viewabilityConfig = { itemVisiblePercentThreshold: 80 };
 
   if (error) {
     return (
@@ -42,11 +45,14 @@ const MediaList = () => {
         estimatedItemSize={300}
         contentContainerStyle={styles.listContent}
         viewabilityConfig={viewabilityConfig}
-        onViewableItemsChanged={onViewableItemsChanged}
+        onViewableItemsChanged={throttledViewableChanged}
         extraData={visibleItems}
         onEndReached={hasMore ? loadMore : undefined}
         onEndReachedThreshold={0.5}
         ListFooterComponent={loading ? <Loader /> : null}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={10}
       />
       {selectedIndex !== null && (
         <FullScreenViewer
